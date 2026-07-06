@@ -44,12 +44,12 @@ async function improveResume(resumeText, previousAnalysis = null) {
   const userMessage = `Оригинальное резюме:\n${resumeText}\n\n${
     previousAnalysis ? `Предыдущий анализ:\n${JSON.stringify(previousAnalysis)}` : ''
   }`;
-  return askClaudeJSON(IMPROVE_SYSTEM_PROMPT, userMessage, 2500);
+  return askClaudeJSON(IMPROVE_SYSTEM_PROMPT, userMessage, 6000);
 }
 
 async function tailorResume(resumeText, jobDescription) {
   const userMessage = `Резюме кандидата:\n${resumeText}\n\nОписание вакансии:\n${jobDescription}`;
-  return askClaudeJSON(TAILOR_SYSTEM_PROMPT, userMessage, 2500);
+  return askClaudeJSON(TAILOR_SYSTEM_PROMPT, userMessage, 6000);
 }
 
 function formatImproveForTelegram(result) {
@@ -80,4 +80,4 @@ function formatTailorForTelegram(result) {
   return msg;
 }
 
-module.exports = { improveResume, tailorResume, formatImproveForTelegram, formatTailorForTelegram };
+module.exports = { improveResume, tailorResume, formatImproveForTelegram, formatTailorForTelegram };ForTelegram };
