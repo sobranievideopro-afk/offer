@@ -1,0 +1,147 @@
+<!--
+  Виджет "Проверь своё резюме" для Tilda.
+  Как вставить:
+  1. В Tilda добавь блок T123 ("HTML-код")
+  2. Вставь весь этот код в него
+  3. Замени API_URL ниже на публичный адрес твоего Railway-проекта
+     (Railway → вкладка Settings → Networking → Public Domain, что-то вроде
+     https://resume-bot-production.up.railway.app)
+-->
+<div id="resume-widget-root" style="max-width: 560px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+
+  <div id="rw-form-step">
+    <h3 style="margin: 0 0 8px; font-size: 24px; font-weight: 700; color: #1a1a1a;">Узнай оценку своего резюме за 30 секунд</h3>
+    <p style="margin: 0 0 20px; color: #666; font-size: 15px;">Бесплатный ИИ-анализ: сильные и слабые стороны, оценка от 0 до 100, конкретные рекомендации</p>
+
+    <input id="rw-name" type="text" placeholder="Ваше имя" style="width: 100%; box-sizing: border-box; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;" />
+    <input id="rw-email" type="email" placeholder="Email" style="width: 100%; box-sizing: border-box; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;" />
+    <input id="rw-phone" type="tel" placeholder="Телефон (необязательно)" style="width: 100%; box-sizing: border-box; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 15px;" />
+
+    <label id="rw-file-label" style="display: block; width: 100%; box-sizing: border-box; padding: 12px 14px; margin-bottom: 16px; border: 2px dashed #ccc; border-radius: 8px; font-size: 15px; color: #888; text-align: center; cursor: pointer;">
+      📄 Загрузить резюме (PDF, DOCX, TXT)
+      <input id="rw-file" type="file" accept=".pdf,.docx,.txt" style="display: none;" />
+    </label>
+
+    <button id="rw-submit" style="width: 100%; padding: 14px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer;">
+      Получить оценку резюме →
+    </button>
+
+    <p id="rw-error" style="color: #dc2626; font-size: 14px; margin-top: 10px; display: none;"></p>
+  </div>
+
+  <div id="rw-loading-step" style="display: none; text-align: center; padding: 40px 0;">
+    <div style="font-size: 18px; color: #444;">🔍 Анализируем ваше резюме...</div>
+    <div style="font-size: 14px; color: #999; margin-top: 8px;">Обычно занимает 10-20 секунд</div>
+  </div>
+
+  <div id="rw-result-step" style="display: none;"></div>
+
+</div>
+
+<script>
+(function () {
+  // ЗАМЕНИ на публичный адрес своего Railway-проекта:
+  const API_URL = 'https://ТВОЙ-ПРОЕКТ.up.railway.app/api/analyze';
+
+  const formStep = document.getElementById('rw-form-step');
+  const loadingStep = document.getElementById('rw-loading-step');
+  const resultStep = document.getElementById('rw-result-step');
+  const errorEl = document.getElementById('rw-error');
+  const fileInput = document.getElementById('rw-file');
+  const fileLabel = document.getElementById('rw-file-label');
+  const submitBtn = document.getElementById('rw-submit');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) {
+      fileLabel.textContent = '✅ ' + fileInput.files[0].name;
+    }
+  });
+
+  function showError(message) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+
+  function scoreColor(score) {
+    if (score >= 80) return '#16a34a';
+    if (score >= 55) return '#ca8a04';
+    return '#dc2626';
+  }
+
+  function renderResult(analysis) {
+    const color = scoreColor(analysis.total_score);
+    let html = '';
+    html += '<div style="text-align: center; margin-bottom: 24px;">';
+    html += '<div style="font-size: 48px; font-weight: 800; color: ' + color + ';">' + analysis.total_score + '<span style="font-size: 24px; color: #999;">/100</span></div>';
+    html += '<div style="color: #666; font-size: 15px;">Оценка вашего резюме</div>';
+    html += '</div>';
+
+    html += '<div style="margin-bottom: 20px;">';
+    html += '<div style="font-weight: 700; margin-bottom: 8px; color: #16a34a;">✅ Сильные стороны</div>';
+    analysis.strengths.forEach(function (s) {
+      html += '<div style="padding: 6px 0; color: #333; font-size: 14px;">• ' + s + '</div>';
+    });
+    html += '</div>';
+
+    html += '<div style="margin-bottom: 20px;">';
+    html += '<div style="font-weight: 700; margin-bottom: 8px; color: #dc2626;">⚠️ Что улучшить</div>';
+    analysis.weaknesses.forEach(function (w) {
+      html += '<div style="padding: 6px 0; color: #333; font-size: 14px;">• ' + w + '</div>';
+    });
+    html += '</div>';
+
+    html += '<div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 20px;">';
+    html += '<div style="font-weight: 700; margin-bottom: 6px;">💡 Главная рекомендация</div>';
+    html += '<div style="color: #333; font-size: 14px;">' + analysis.top_recommendation + '</div>';
+    html += '</div>';
+
+    html += '<p style="text-align: center; color: #666; font-size: 14px;">Полный разбор и улучшенную версию резюме отправим вам на email в течение дня 📩</p>';
+
+    resultStep.innerHTML = html;
+  }
+
+  submitBtn.addEventListener('click', async function () {
+    errorEl.style.display = 'none';
+
+    const name = document.getElementById('rw-name').value.trim();
+    const email = document.getElementById('rw-email').value.trim();
+    const phone = document.getElementById('rw-phone').value.trim();
+    const file = fileInput.files[0];
+
+    if (!email && !phone) {
+      showError('Укажите email или телефон');
+      return;
+    }
+    if (!file) {
+      showError('Загрузите файл резюме');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('resume', file);
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('phone', phone);
+
+    formStep.style.display = 'none';
+    loadingStep.style.display = 'block';
+
+    try {
+      const response = await fetch(API_URL, { method: 'POST', body: formData });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка анализа');
+      }
+
+      loadingStep.style.display = 'none';
+      resultStep.style.display = 'block';
+      renderResult(data.analysis);
+    } catch (err) {
+      loadingStep.style.display = 'none';
+      formStep.style.display = 'block';
+      showError(err.message || 'Что-то пошло не так, попробуйте ещё раз');
+    }
+  });
+})();
+</script>
